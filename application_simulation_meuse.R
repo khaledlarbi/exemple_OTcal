@@ -43,9 +43,17 @@ plot_meuse_variable <- function(data, varname) {
 
 
 plot_meuse_variable(simulated_data, "cadmium")
-plot_meuse_variable(simulated_data, "log_zinc")
-plot_meuse_variable(simulated_data, "soil")
+plot_meuse_variable(simulated_data, "copper")
+plot_meuse_variable(simulated_data, "lead")
+plot_meuse_variable(simulated_data, "om")
 
+
+#plot_meuse_variable(simulated_data, "zinc")
+
+summary(lm(data = simulated_data, cadmium ~ elev - 1))
+summary(lm(data = simulated_data, lead ~ elev - 1))
+summary(lm(data = simulated_data, copper ~ elev - 1))
+summary(lm(data = simulated_data, om ~ elev - 1))
 
 add_geographical_zones <- function(data, k = 4) {
   if (!all(c("longitude", "latitude") %in% names(data))) {
@@ -82,9 +90,9 @@ one_hot_encode_zone <- function(data, zone_col = "zone") {
 
 
 nb_sim <- 1000
-taille_ech <- 30
-var_int_init <- c("cadmium", "soil", "log_zinc")
-var_calage <- c("elev", "ffreq", "om")
+taille_ech <- 20
+var_int_init <- c("cadmium", "lead", "copper","om")
+var_calage <- c("elev")
 var_calage %in% colnames(simulated_data)
 
 simulated_data <- add_geographical_zones(simulated_data)
@@ -103,57 +111,61 @@ for (col in zone_columns) {
 
 var_int <- c(var_int_init, as.vector(outer(zone_columns, var_int_init, paste, sep = "")))
 
-
+dist_k1 <- k_nearest_matrix(d_prime, 1)
+dist_k4 <- k_nearest_matrix(d_prime, 4)
+dist_k10 <- k_nearest_matrix(d_prime, 10)
 
 
 liste_params <- list(
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_mat, "epsilon" = c(0.1))),
+       "params_dist" = list("C" = dist_k1, "epsilon" = 0.3)),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_prime, "epsilon" = c(0.1))),
+       "params_dist" = list("C" = dist_k4, "epsilon" = 0.3)),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_mat, "epsilon" = c(0.3))),
+       "params_dist" = list("C" = dist_k4, "epsilon" = 0.5)),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_prime, "epsilon" = c(0.3))),
+       "params_dist" = list("C" = dist_k10, "epsilon" = rev(seq(0.1, 0.5,0.05)))),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_prime, "epsilon" = c(0.2))),
+       "params_dist" = list("C" = d_prime, "epsilon" = 0.35)),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_prime, "epsilon" = c(0.4))),
+       "params_dist" = list("C" = d_prime, "epsilon" = 0.25)),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_mat, "epsilon" = c(0.5))),
+       "params_dist" = list("C" = d_prime, "epsilon" = 0.2)),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_prime, "epsilon" = c(0.5))),
+       "params_dist" = list("C" = d_prime, "epsilon" = c(0.2, 0.15, 0.14, 0.13, 0.12, 0.11,0.1))),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_mat, "epsilon" = c(0.8))),
+       "params_dist" = list("C" = d_prime, "epsilon" = c(0.2, 0.15, 0.14, 0.13, 0.12, 0.11, 0.1, 0.09, 0.085,
+                                                      0.080, 0.075,
+                                                      0.07, 0.065, 0.06, 0.055, 0.05))),
   list("method" = "wass_ent",
-       "regularisation_param" = 1e-4,
+       "regularisation_param" = 1e-6,
        "normalisation"= TRUE,
-       "params_dist" = list("C" = d_prime, "epsilon" = c(0.8))),
+       "params_dist" = list("C" = d_prime, "epsilon" = c(0.5, 0.3, 0.2, rev(seq(0.01, 0.1, 0.01))))),
   list("method" = "linear",
        "regularisation_param" = 1e-6,
        "normalisation"= TRUE),
   list("method" = "raking",
        "regularisation_param" = 1e-6,
-       "normalisation"= TRUE)
-)
+       "normalisation"= TRUE))
+
 
 
 res <- lapply(1:nb_sim, FUN = function(i){
@@ -163,7 +175,7 @@ res <- lapply(1:nb_sim, FUN = function(i){
                       var_calage,
                       var_int,
                       liste_params,
-                      spatialement = TRUE)
+                      spatialement = FALSE)
 })
 
 
@@ -222,7 +234,7 @@ res_mse <- res_mse %>%
   mutate(across(starts_with(c("methode_","HT")), ~ .x / HT))
 
 
-
+#OM Pas efficace
 
 
 
